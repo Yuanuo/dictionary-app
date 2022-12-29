@@ -1,0 +1,21 @@
+# maven
+/target
+/app/target
+/app-packager/target
+
+# eclipse
+/.settings
+/.classpath
+/.project
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# more
+/.cached
+bak/
+*.bak/
+/repo
