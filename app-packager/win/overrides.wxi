@@ -30,5 +30,5 @@ Should be defined to enable upgrades and undefined to disable upgrades.
 Default value is `yes`.
 -->
 <Include>
-    <?define JpAppTitle = "TestPkg" ?>
+    <?define JpAppTitle = "Smart Dictionary" ?>
 </Include>
