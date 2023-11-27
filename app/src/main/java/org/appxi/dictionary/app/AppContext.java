@@ -1,54 +1,38 @@
 package org.appxi.dictionary.app;
 
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import org.appxi.dictionary.app.event.GenericEvent;
-import org.appxi.dictionary.app.explorer.DictionaryContext;
-import org.appxi.dictionary.app.explorer.HtmlBasedViewer;
+import org.appxi.dictionary.ui.DictionaryContext;
 import org.appxi.javafx.app.AppEvent;
+import org.appxi.javafx.app.DesktopApp;
+import org.appxi.javafx.app.web.WebViewer;
 import org.appxi.javafx.helper.FxHelper;
-import org.appxi.javafx.settings.DefaultOptions;
 import org.appxi.javafx.settings.SettingsList;
-import org.appxi.prefs.UserPrefs;
 import org.appxi.smartcn.convert.ChineseConvertors;
 import org.appxi.util.ext.HanLang;
 
-import java.util.Objects;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
 public abstract class AppContext {
     private AppContext() {
     }
 
     static void setupInitialize(App app) {
-        DictionaryContext.setupInitialize(app, HtmlBasedViewer::getWebIncludeURIsEx, AppContext::hanText);
+        DictionaryContext.setupInitialize(app, () -> {
+            List<String> result = WebViewer.getWebIncludeURIs();
+            final Path dir = DesktopApp.appDir().resolve("template/web-incl");
+            result.addAll(Stream.of("html-viewer.css", "html-viewer.js")
+                    .map(s -> dir.resolve(s).toUri().toString())
+                    .toList()
+            );
+            result.add("<link id=\"CSS\" rel=\"stylesheet\" type=\"text/css\" href=\"" + app.visualProvider.getWebStyleSheetURI() + "\">");
+            return result;
+        }, HanLang::convert);
         //
         app.eventBus.addEventHandler(AppEvent.STARTED, e -> FxHelper.runThread(30, () -> DictionaryContext.openSearcherInEmbed(app, null)));
         //
-        app.eventBus.addEventHandler(GenericEvent.HAN_LANG_CHANGED, event -> hanLang = event.data());
+        HanLang.setup(app.eventBus, (text, lang) -> ChineseConvertors.convert(text, null, lang));
         //
-        SettingsList.add(() -> {
-            final ObjectProperty<HanLang> valueProperty = new SimpleObjectProperty<>(AppContext.hanLang());
-            valueProperty.addListener((o, ov, nv) -> {
-                if (null == ov || Objects.equals(ov, nv)) return;
-                //
-                UserPrefs.prefs.setProperty("display.han", nv.lang);
-                app.eventBus.fireEvent(new GenericEvent(GenericEvent.HAN_LANG_CHANGED, nv));
-            });
-            return new DefaultOptions<HanLang>("简繁体", "以 简体/繁体 显示阅读视图中文字符", "VIEWER", true)
-                    .setValues(HanLang.hans, HanLang.hant, HanLang.hantHK, HanLang.hantTW)
-                    .setValueProperty(valueProperty);
-        });
-    }
-
-    private static HanLang hanLang;
-
-    public static HanLang hanLang() {
-        if (null == hanLang)
-            hanLang = HanLang.valueBy(UserPrefs.prefs.getString("display.han", HanLang.hans.lang));
-        return hanLang;
-    }
-
-    public static String hanText(String text) {
-        return null == text ? "" : ChineseConvertors.convert(text, HanLang.hantTW, hanLang());
+        SettingsList.add(() -> FxHelper.optionForHanLang("以 简体/繁体 显示阅读视图中文字符"));
     }
 }

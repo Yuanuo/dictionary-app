@@ -1,7 +1,6 @@
-package org.appxi.dictionary.app.explorer;
+package org.appxi.dictionary.ui;
 
 import javafx.event.ActionEvent;
-import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -11,68 +10,48 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import org.appxi.dictionary.Dictionaries;
 import org.appxi.dictionary.Dictionary;
-import org.appxi.dictionary.SearchType;
-import org.appxi.dictionary.app.App;
-import org.appxi.holder.RawHolder;
+import org.appxi.dictionary.MatchType;
 import org.appxi.javafx.control.LookupLayer;
 import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.MaterialIcon;
 import org.appxi.javafx.workbench.WorkbenchApp;
-import org.appxi.prefs.UserPrefs;
+import org.appxi.property.RawProperty;
 import org.appxi.smartcn.convert.ChineseConvertors;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
     final WorkbenchApp app;
     String inputQuery, finalQuery;
-    private Predicate<Dictionary> dictionaryPredicate;
+    final RawProperty<Predicate<Dictionary>> filterProperty = new RawProperty<>();
 
     DictionaryLookupLayer(WorkbenchApp app) {
         super(app.getPrimaryGlass());
         this.app = app;
 
-        Button mgrButton = MaterialIcon.BUILD_CIRCLE.iconButton(e -> DictionaryContext.openPreferencesDialog(app));
-        mgrButton.setTooltip(new Tooltip(App.NAME + "设置"));
-        textInput.rightArea.getChildren().add(mgrButton);
+        //
+//            sourceInfo.setGraphic(MaterialIcon.MANAGE_SEARCH.graphic());
+        sourceInfo.setTooltip(new Tooltip("查词范围设置"));
+        sourceInfo.setOnAction(actionEvent -> DictionaryContext.openSearchScopesDialog(app, filterProperty));
 
         //
-        this.setDictionaryPredicate(null);
+        filterProperty.addListener((ov, nv) -> {
+            sourceInfo.setText("在 %d 词条中查:".formatted(getSearchScopes().sizeEntries()));
+            String searchedText = getSearchedText();
+            reset();
+            search(searchedText);
+        });
+        filterProperty.set(DictionaryContext.getDefaultScopesFilter());
     }
 
-    private void setDictionaryPredicate(Predicate<Dictionary> dictionaryPredicate) {
-        if (null == dictionaryPredicate) {
-            List<String> excludedList = Stream.of(UserPrefs.prefs.getString("dictionary.defaultScopes", "").split("\\|\\|"))
-                    .filter(s -> !s.isBlank())
-                    .toList();
-            dictionaryPredicate = dictionary -> excludedList.isEmpty() || !excludedList.contains(dictionary.name);
-            sourceInfo.setGraphic(MaterialIcon.MANAGE_SEARCH.graphic());
-            sourceInfo.setOnAction(actionEvent -> {
-                RawHolder<Predicate<Dictionary>> currentPredicate = new RawHolder<>(this.dictionaryPredicate);
-                DictionaryContext.openSearchScopesDialog(app, currentPredicate);
-                if (this.dictionaryPredicate != currentPredicate.value) {
-                    setDictionaryPredicate(currentPredicate.value);
-                    String searchedText = getSearchedText();
-                    reset();
-                    search(searchedText);
-                }
-            });
-        }
-        this.dictionaryPredicate = dictionaryPredicate;
-
-        Dictionaries dictionaries = Dictionaries.getDictionaries(dictionaryPredicate);
-        if (dictionaries.totalDictionaries() == 0) {
-            this.dictionaryPredicate = null;
-            dictionaries = Dictionaries.getDictionaries();
-        }
-        sourceInfo.setText("在 %d 词条中查找:".formatted(dictionaries.totalEntries()));
+    private Dictionaries getSearchScopes() {
+        final Dictionaries dictionaries = Dictionaries.def.filtered(filterProperty.get());
+        return dictionaries.size() > 0 ? dictionaries : Dictionaries.def;
     }
 
     @Override
@@ -87,11 +66,22 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
 
     @Override
     protected void helpButtonAction(ActionEvent actionEvent) {
-        FxHelper.showTextViewerWindow(app, "dictionaryLookup.helpWindow", "查词使用方法",
+        FxHelper.showTextViewerWindow(app, "dictionaryLookup.helpWindow", "查词功能使用说明",
                 """
+                        查词：
                         >> 当前支持自动简繁汉字和英文词！
-                        >> 匹配规则：默认1）以词开始：输入 或 输入*；2）以词结尾：*输入；3）以词存在：*输入*；4）以双引号包含精确查词："输入"；
+                                                
+                        >> 匹配规则（默认1）：
+                        1）以词开始：输入 或 输入*；
+                        2）以词结尾：*输入；
+                        3）以词存在：*输入*；
+                        4）以双引号包含精确查词："输入"；
+                                                
                         >> 快捷键：Ctrl+D 开启；ESC 或 点击透明区 退出此界面；上/下方向键选择列表项；回车键打开；
+                                                
+                                                
+                        查词范围：
+                        规则：在设定默认查词范围时，所有【未选中】的词库均被记录，在新增更多词库后将排除这些未选中的词库，而新增的词库将被用于查询。
                         """);
     }
 
@@ -101,7 +91,7 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
 
         // detect
         final StringBuilder keywords = new StringBuilder(lookupText);
-        final SearchType searchType = SearchType.detect(keywords);
+        final MatchType matchType = MatchType.detect(keywords);
         lookupText = keywords.toString();
 
         lookupText = lookupText.isBlank() ? "" : ChineseConvertors.toHans(lookupText);
@@ -110,12 +100,11 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
         final boolean finalQueryIsBlank = null == finalQuery || finalQuery.isBlank();
         List<Dictionary.Entry> result = new ArrayList<>(1024);
 
-        final Dictionaries dictionaries = Dictionaries.getDictionaries(dictionaryPredicate);
-        final long total = dictionaries.totalEntries();
+        final Dictionaries dictionaries = getSearchScopes();
+        final long total = dictionaries.sizeEntries();
 
         if (finalQueryIsBlank) {
-            Collections.shuffle(dictionaries.list);
-            final Iterator<Dictionary.Entry> searcher = dictionaries.search(finalQuery, searchType, null);
+            final Iterator<Dictionary.Entry> searcher = dictionaries.shuffled().search(finalQuery, matchType);
             while (searcher.hasNext()) {
                 result.add(searcher.next());
                 if (result.size() >= resultLimit) {
@@ -125,7 +114,7 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
             return new LookupResult<>(total, total, result);
         }
 
-        final Iterator<Dictionary.Entry> searcher = dictionaries.search(finalQuery, searchType, null);
+        final Iterator<Dictionary.Entry> searcher = dictionaries.search(finalQuery, matchType);
         while (searcher.hasNext()) {
             result.add(searcher.next());
         }

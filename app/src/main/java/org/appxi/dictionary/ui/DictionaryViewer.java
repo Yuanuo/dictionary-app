@@ -1,34 +1,41 @@
-package org.appxi.dictionary.app.explorer;
+package org.appxi.dictionary.ui;
 
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import org.appxi.dictionary.Dictionaries;
 import org.appxi.dictionary.Dictionary;
 import org.appxi.dictionary.DictionaryHelper;
-import org.appxi.dictionary.SearchType;
-import org.appxi.javafx.app.search.DictionaryEvent;
+import org.appxi.dictionary.MatchType;
+import org.appxi.event.EventHandler;
 import org.appxi.javafx.app.web.WebToolPrinter;
 import org.appxi.javafx.app.web.WebViewer;
 import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.MaterialIcon;
-import org.appxi.javafx.web.WebSelection;
+import org.appxi.javafx.web.WebPane;
+import org.appxi.javafx.workbench.WorkbenchApp;
 import org.appxi.javafx.workbench.WorkbenchPane;
 import org.appxi.prefs.UserPrefs;
 import org.appxi.util.FileHelper;
 import org.appxi.util.StringHelper;
+import org.appxi.util.ext.HanLang;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-class DictionaryViewer extends WebViewer {
+public class DictionaryViewer extends WebViewer {
+    public static final Object AK_BY_SELECTION = new Object();
+
     final Dictionary.Entry entry;
 
     private boolean _searchAllDictionaries;
     private Button searchAll;
+    private final EventHandler<HanLang.Event> _handleHanLangChanged = event -> navigate(null);
 
     DictionaryViewer(WorkbenchPane workbench, Dictionary.Entry entry) {
         super(workbench);
@@ -56,6 +63,21 @@ class DictionaryViewer extends WebViewer {
         //
         addTool_searchAllDictionaries();
         new WebToolPrinter(this);
+        //
+        app.eventBus.addEventHandler(HanLang.Event.CHANGED, _handleHanLangChanged);
+        //
+        WebViewer.addShortcutKeys(this);
+        DictionaryViewer.addShortcutKeys(this);
+        WebViewer.addShortcutMenu(this);
+        DictionaryViewer.addShortcutMenu(this);
+        DictionaryViewer.addShortcutMenu_(this);
+        DictionaryViewer.addSelectionEvent(this);
+    }
+
+    @Override
+    public void deinitialize() {
+        app.eventBus.removeEventHandler(HanLang.Event.CHANGED, _handleHanLangChanged);
+        super.deinitialize();
     }
 
     protected void addTool_searchAllDictionaries() {
@@ -95,7 +117,7 @@ class DictionaryViewer extends WebViewer {
         StringBuilder htmlDoc = new StringBuilder();
         if (_searchAllDictionaries) {
             List<Dictionary.Entry> list = new ArrayList<>();
-            Dictionaries.search(entry.title(), SearchType.TitleEquals, null, null)
+            Dictionaries.def.search(entry.title(), MatchType.TitleEquals)
                     .forEachRemaining(entry -> list.add(entry.dictionary == this.entry.dictionary ? 0 : list.size(), entry));
             list.forEach(entry -> htmlDoc.append(DictionaryHelper.toHtmlDocument(entry)));
         } else {
@@ -129,33 +151,77 @@ class DictionaryViewer extends WebViewer {
         return new WebJavaBridgeImpl();
     }
 
-    protected void onWebViewContextMenuRequest(List<MenuItem> model, WebSelection selection) {
-        super.onWebViewContextMenuRequest(model, selection);
-        //
-        String textTip = selection.hasTrims ? "：" + StringHelper.trimChars(selection.trims, 8) : "";
-        String textForSearch = selection.hasTrims ? selection.trims : null;
-        //
-        MenuItem copyRef = new MenuItem("复制引用");
-        copyRef.setDisable(true);
-
-        //
-        model.add(createMenu_copy(selection));
-        model.add(copyRef);
-        model.add(new SeparatorMenuItem());
-        model.add(createMenu_search(textTip, textForSearch));
-        model.add(createMenu_searchExact(textTip, textForSearch));
-        model.add(createMenu_lookup(textTip, textForSearch));
-        model.add(createMenu_finder(textTip, selection));
-        model.add(new SeparatorMenuItem());
-        model.add(createMenu_dict(selection));
-        model.add(createMenu_pinyin(selection));
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public class WebJavaBridgeImpl extends WebViewer.WebJavaBridgeImpl {
         public void seeAlso(String dictId, String keyword) {
             app.eventBus.fireEvent(DictionaryEvent.ofSearchExact(dictId, keyword));
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static void addShortcutKeys(WebViewer webViewer) {
+        final WebPane webPane = webViewer.webPane;
+        final WorkbenchApp app = webViewer.app;
+        // Ctrl + D
+        webPane.shortcutKeys.put(new KeyCodeCombination(KeyCode.D, KeyCombination.SHORTCUT_DOWN), event -> {
+            // 如果有选中文字，则按选中文字处理
+            String origText = webPane.executeScript("getValidSelectionText()");
+            String trimText = null == origText ? null : origText.strip().replace('\n', ' ');
+            final String availText = StringHelper.isBlank(trimText) ? null : trimText;
+
+            final String str = null == availText ? null : StringHelper.trimChars(availText, 20, "");
+            app.eventBus.fireEvent(DictionaryEvent.ofSearch(str));
+            event.consume();
+        });
+    }
+
+    public static void addShortcutMenu(WebViewer webViewer) {
+        final WebPane webPane = webViewer.webPane;
+        final WorkbenchApp app = webViewer.app;
+        //
+        webPane.shortcutMenu.add(selection -> {
+            MenuItem menuItem = new MenuItem();
+            menuItem.getProperties().put(WebPane.GRP_MENU, "search2");
+            if (selection.hasTrims) {
+                menuItem.setText("查词典：" + StringHelper.trimChars(selection.trims, 10));
+            } else {
+                menuItem.setText("查词典");
+            }
+            menuItem.setOnAction(event -> app.eventBus.fireEvent(DictionaryEvent.ofSearch(
+                    selection.hasTrims ? StringHelper.trimChars(selection.trims, 20, "") : null)));
+            return List.of(menuItem);
+        });
+    }
+
+    private static void addShortcutMenu_(WebViewer webViewer) {
+        final WebPane webPane = webViewer.webPane;
+        final WorkbenchApp app = webViewer.app;
+        //
+        webPane.shortcutMenu.add(selection -> {
+            MenuItem menuItem = new MenuItem("复制引用");
+            menuItem.getProperties().put(WebPane.GRP_MENU, "copy");
+            menuItem.setDisable(true);
+            return List.of(menuItem);
+        });
+    }
+
+    public static void addSelectionEvent(WebViewer webViewer) {
+        final WebPane webPane = webViewer.webPane;
+        final WorkbenchApp app = webViewer.app;
+        //
+        webPane.selectionListeners.add((shortcutDown, selection) -> {
+            Object act = webPane.getProperties().get(DictionaryViewer.AK_BY_SELECTION);
+            if (null == act) {
+                act = UserPrefs.prefs.getString("dictionary.bySelection", "selection&shortcut1");
+            }
+            if ("selection&shortcut1".equals(act) && shortcutDown || "selection&shortcut0".equals(act) && !shortcutDown) {
+                String text = StringHelper.trimChars(selection.trims, 20, "");
+                if (!text.isBlank()) {
+                    app.eventBus.fireEvent(DictionaryEvent.ofSearch(text));
+                }
+            }
+        });
     }
 }

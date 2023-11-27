@@ -1,4 +1,4 @@
-package org.appxi.dictionary.app.home;
+package org.appxi.dictionary.pref;
 
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -12,12 +12,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
+import org.appxi.dictionary.app.App;
 import org.appxi.javafx.visual.MaterialIcon;
 import org.appxi.javafx.workbench.WorkbenchPane;
 import org.appxi.javafx.workbench.WorkbenchPart;
 import org.appxi.javafx.workbench.WorkbenchPartController;
 import org.appxi.prefs.UserPrefs;
-import org.appxi.dictionary.app.App;
 import org.appxi.util.OSVersions;
 
 import java.util.Optional;
@@ -54,7 +54,7 @@ public class AboutController extends WorkbenchPartController implements Workbenc
         final HBox headBox = new HBox(head);
         HBox.setHgrow(head, Priority.ALWAYS);
 
-        final Label desc = new Label("智典、字典、智一点");
+        final Label desc = new Label("Smart Dictionary / Smart Words");
         desc.setStyle("-fx-font-size: 1.5em; -fx-padding: .5em 0 2em 0;");
         desc.setMaxWidth(Double.MAX_VALUE);
         desc.setAlignment(Pos.CENTER);

@@ -2,9 +2,9 @@ package org.appxi.dictionary.app;
 
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.appxi.dictionary.app.explorer.DictionaryController;
-import org.appxi.dictionary.app.home.AboutController;
-import org.appxi.dictionary.app.home.PreferencesController;
+import org.appxi.dictionary.pref.AboutController;
+import org.appxi.dictionary.pref.PreferencesController;
+import org.appxi.dictionary.ui.DictionaryController;
 import org.appxi.file.FileWatcher;
 import org.appxi.javafx.visual.VisualEvent;
 import org.appxi.javafx.web.WebPane;
@@ -20,16 +20,10 @@ import java.util.Optional;
 
 public class App extends WorkbenchApp {
     public static final String ID = "smartDictionary";
-    public static final String NAME = "智典";
-    public static final String VERSION = "23.05.16";
-    private static App instance;
+    public static final String NAME = "Smart Dictionary";
+    public static final String VERSION = "23.11.22";
 
     public App() {
-        App.instance = this;
-    }
-
-    public static App app() {
-        return instance;
     }
 
     @Override

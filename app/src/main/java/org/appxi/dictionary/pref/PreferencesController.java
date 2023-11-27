@@ -1,4 +1,4 @@
-package org.appxi.dictionary.app.home;
+package org.appxi.dictionary.pref;
 
 import javafx.scene.Node;
 import javafx.scene.control.ButtonType;

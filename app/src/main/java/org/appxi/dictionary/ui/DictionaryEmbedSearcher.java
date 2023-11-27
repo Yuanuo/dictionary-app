@@ -1,4 +1,4 @@
-package org.appxi.dictionary.app.explorer;
+package org.appxi.dictionary.ui;
 
 import javafx.geometry.Insets;
 import javafx.scene.layout.StackPane;

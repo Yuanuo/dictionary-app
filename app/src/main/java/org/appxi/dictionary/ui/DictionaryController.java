@@ -1,4 +1,4 @@
-package org.appxi.dictionary.app.explorer;
+package org.appxi.dictionary.ui;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
