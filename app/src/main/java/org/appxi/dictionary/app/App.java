@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class App extends WorkbenchApp {
-    public static final String ID = "smartDictionary";
+    public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
     public static final String VERSION = "23.11.22";
 

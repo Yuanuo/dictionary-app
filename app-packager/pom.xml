@@ -57,11 +57,11 @@
                             <compress>2</compress>
                             <!--   /////////////////////////////////////////////////////////////////  -->
                             <vendor>AppXI</vendor>
-                            <name>smartDictionary</name>
-                            <description>smartDictionary ! the Smart Dictionary</description>
-                            <identifier>appxi.smartDictionary</identifier>
+                            <name>smartWords</name>
+                            <description>smartWords ! the Smart Dictionary</description>
+                            <identifier>appxi.smartWords</identifier>
                             <icon>${project.basedir}/win/app.ico</icon>
-                            <installDir>smartDictionary</installDir>
+                            <installDir>smartWords</installDir>
                             <module>${ext.module}</module>
                             <jvmArgs><jvmArg>${ext.jvmArgs}</jvmArg></jvmArgs>
                             <outputDirectoryAutomaticJars>${ext.nonMods.lib}</outputDirectoryAutomaticJars>
