@@ -21,6 +21,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -35,7 +36,6 @@ import org.appxi.dictionary.io.DictFileMdx;
 import org.appxi.dictionary.io.DictFileTxt;
 import org.appxi.javafx.app.AppEvent;
 import org.appxi.javafx.app.BaseApp;
-import org.appxi.javafx.app.DesktopApp;
 import org.appxi.javafx.control.HBoxEx;
 import org.appxi.javafx.control.OpaqueLayer;
 import org.appxi.javafx.helper.FxHelper;
@@ -43,10 +43,8 @@ import org.appxi.javafx.settings.DefaultOption;
 import org.appxi.javafx.settings.DefaultOptions;
 import org.appxi.javafx.settings.Option;
 import org.appxi.javafx.settings.OptionEditorBase;
-import org.appxi.javafx.settings.SettingsList;
 import org.appxi.javafx.workbench.WorkbenchApp;
 import org.appxi.javafx.workbench.WorkbenchPane;
-import org.appxi.prefs.UserPrefs;
 import org.appxi.property.RawProperty;
 import org.appxi.util.DigestHelper;
 import org.appxi.util.FileHelper;
@@ -64,26 +62,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DictionaryContext {
-    static Supplier<List<String>> webIncludesSupplier;
-    static Function<String, String> htmlDocumentWrapper;
+    public static void setupDirectories(BaseApp app) {
+        app.eventBus.addEventHandler(AppEvent.STARTED, event -> DictionaryContext.reloadDictionaries(app));
+    }
 
-    public static void setupInitialize(WorkbenchApp app,
-                                       Supplier<List<String>> webIncludesSupplier,
-                                       Function<String, String> htmlDocumentWrapper) {
-        DictionaryContext.webIncludesSupplier = webIncludesSupplier;
-        DictionaryContext.htmlDocumentWrapper = htmlDocumentWrapper;
-        //
-        app.eventBus.addEventHandler(AppEvent.STARTED, event -> {
-            DictionaryContext.reloadDictionaries(app);
-        });
-        //
+    public static void setupApplication(BaseApp app) {
         app.eventBus.addEventHandler(DictionaryEvent.SEARCH, event -> openSearcher(app, null != event.text ? event.text.strip() : null));
         //
         app.eventBus.addEventHandler(DictionaryEvent.SEARCH_EXACT, event -> {
@@ -94,20 +82,20 @@ public class DictionaryContext {
             }
         });
         //
-        SettingsList.add(DictionaryContext::optionForSelectionEvent);
-        SettingsList.add(DictionaryContext::optionForSearcherPlaces);
-        SettingsList.add(DictionaryContext::optionForViewerLoadAll);
-        SettingsList.add(() -> optionForSourcePaths(app));
+        app.settings.add(() -> optionForSelectionEvent(app));
+        app.settings.add(() -> optionForSearcherPlaces(app));
+        app.settings.add(() -> optionForViewerLoadAll(app));
+        app.settings.add(() -> optionForSourcePaths(app));
     }
 
     public static Path getDefaultRepo() {
         return Path.of(System.getProperty("user.home")).resolve("." + App.ID + "/dict");
     }
 
-    public static List<Path> getManagedPaths() {
+    public static List<Path> getManagedPaths(BaseApp app) {
         final List<Path> list = new ArrayList<>();
-        if (DesktopApp.productionMode) {
-            list.add(DesktopApp.appDir().resolve("dict"));
+        if (BaseApp.productionMode) {
+            list.add(BaseApp.appDir().resolve("dict"));
         } else {
             final Path dictRepo;
             Path tmp = Path.of("../appxi-dictionary.dd");
@@ -123,7 +111,7 @@ public class DictionaryContext {
         }
         list.add(getDefaultRepo());
 
-        list.addAll(Stream.of(UserPrefs.prefs.getString("dictionary.paths", "").strip().split("\\|\\|"))
+        list.addAll(Stream.of(app.config.getString("dictionary.paths", "").strip().split("\\|\\|"))
                 .filter(s -> !s.isBlank())
                 .map(Path::of)
                 .filter(p -> !list.contains(p))
@@ -132,20 +120,20 @@ public class DictionaryContext {
         return list;
     }
 
-    private static void reloadDictionaries(WorkbenchApp app) {
+    private static void reloadDictionaries(BaseApp app) {
         Dictionaries.def.clear();
-        Dictionaries.def.add(getManagedPaths().toArray(new Path[0]));
+        Dictionaries.def.add(getManagedPaths(app).toArray(new Path[0]));
         FxHelper.runThread(2000, () -> app.toast("已发现并成功加载 " + Dictionaries.def.size() + " 个词库！"));
     }
 
-    public static Predicate<Dictionary> getDefaultScopesFilter() {
-        List<String> excludedList = Stream.of(UserPrefs.prefs.getString("dictionary.defaultScopes", "").split("\\|\\|"))
+    public static Predicate<Dictionary> getDefaultScopesFilter(BaseApp app) {
+        List<String> excludedList = Stream.of(app.config.getString("dictionary.defaultScopes", "").split("\\|\\|"))
                 .filter(s -> !s.isBlank())
                 .toList();
         return dictionary -> excludedList.isEmpty() || !excludedList.contains(dictionary.name);
     }
 
-    private static Option<RawVal<String>> optionForSelectionEvent() {
+    private static Option<RawVal<String>> optionForSelectionEvent(BaseApp app) {
         final List<RawVal<String>> values = List.of(
                 RawVal.vk("selection&shortcut1", "仅在按下 Ctrl或Cmd 并选中文字后，立即查词"),
                 RawVal.vk("selection&shortcut0", "仅在选中文字后，立即查词（同时按下Ctrl或Cmd将失效）"),
@@ -153,19 +141,19 @@ public class DictionaryContext {
         );
         final ObjectProperty<RawVal<String>> valueProperty = new SimpleObjectProperty<>(
                 values.stream()
-                        .filter(rv -> rv.value().equals(UserPrefs.prefs.getString("dictionary.bySelection", "selection&shortcut1")))
+                        .filter(rv -> rv.value().equals(app.config.getString("dictionary.bySelection", "selection&shortcut1")))
                         .findFirst().orElse(values.get(0))
         );
         valueProperty.addListener((o, ov, nv) -> {
             if (null == ov || Objects.equals(ov, nv)) return;
-            UserPrefs.prefs.setProperty("dictionary.bySelection", nv.value());
+            app.config.setProperty("dictionary.bySelection", nv.value());
         });
         return new DefaultOptions<RawVal<String>>("选字查词", "若同时按下Alt或Shift键时将失效", "查词", true)
                 .setValues(values)
                 .setValueProperty(valueProperty);
     }
 
-    private static Option<RawVal<String>> optionForSearcherPlaces() {
+    private static Option<RawVal<String>> optionForSearcherPlaces(BaseApp app) {
         final List<RawVal<String>> values = List.of(
                 RawVal.vk("popup", "新窗口"),
                 RawVal.vk("embed", "主窗口标签页"),
@@ -173,38 +161,38 @@ public class DictionaryContext {
         );
         final ObjectProperty<RawVal<String>> valueProperty = new SimpleObjectProperty<>(
                 values.stream()
-                        .filter(rv -> rv.value().equals(UserPrefs.prefs.getString("dictionary.searcherPlace", "popup")))
+                        .filter(rv -> rv.value().equals(app.config.getString("dictionary.searcherPlace", "popup")))
                         .findFirst().orElse(values.get(0))
         );
         valueProperty.addListener((o, ov, nv) -> {
             if (null == ov || Objects.equals(ov, nv)) return;
-            UserPrefs.prefs.setProperty("dictionary.searcherPlace", nv.value());
+            app.config.setProperty("dictionary.searcherPlace", nv.value());
         });
         return new DefaultOptions<RawVal<String>>("查词界面位置", "显示查词输入界面位置", "查词", true)
                 .setValues(values)
                 .setValueProperty(valueProperty);
     }
 
-    private static Option<RawVal<String>> optionForViewerLoadAll() {
+    private static Option<RawVal<String>> optionForViewerLoadAll(BaseApp app) {
         final List<RawVal<String>> values = List.of(
                 RawVal.vk("true", "全部词典"),
                 RawVal.vk("false", "单一词典")
         );
         final ObjectProperty<RawVal<String>> valueProperty = new SimpleObjectProperty<>(
                 values.stream()
-                        .filter(rv -> rv.value().equals(UserPrefs.prefs.getString("dictionary.viewerLoadAll", "false")))
+                        .filter(rv -> rv.value().equals(app.config.getString("dictionary.viewerLoadAll", "false")))
                         .findFirst().orElse(values.get(1))
         );
         valueProperty.addListener((o, ov, nv) -> {
             if (null == ov || Objects.equals(ov, nv)) return;
-            UserPrefs.prefs.setProperty("dictionary.viewerLoadAll", nv.value());
+            app.config.setProperty("dictionary.viewerLoadAll", nv.value());
         });
         return new DefaultOptions<RawVal<String>>("词条内容来源", "打开词条查看器时，默认显示的词条内容来自", "查词", true)
                 .setValues(values)
                 .setValueProperty(valueProperty);
     }
 
-    private static Option<String> optionForSourcePaths(WorkbenchApp app) {
+    private static Option<String> optionForSourcePaths(BaseApp app) {
         return new DefaultOption<String>("词库列表", null, "查词", true,
                 option -> new OptionEditorBase<>(option, new Button()) {
                     private ObjectProperty<String> valueProperty;
@@ -264,7 +252,7 @@ public class DictionaryContext {
         VBox.setVgrow(listView, Priority.ALWAYS);
         listView.setMinHeight(200);
         listView.setStyle("-fx-border-width: 1px; -fx-border-color: gray;");
-        listView.getItems().setAll(getManagedPaths());
+        listView.getItems().setAll(getManagedPaths(app));
         listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listView.getItems().addListener((ListChangeListener<? super Path>) c -> {
             if (c.wasAdded()) {
@@ -275,7 +263,7 @@ public class DictionaryContext {
             }
 
             List<Path> paths = listView.getItems();
-            UserPrefs.prefs.setProperty("dictionary.paths", paths.stream()
+            app.config.setProperty("dictionary.paths", paths.stream()
                     .filter(path -> paths.indexOf(path) > 1)
                     .map(Path::toString)
                     .collect(Collectors.joining("||")));
@@ -342,9 +330,7 @@ public class DictionaryContext {
                     e.printStackTrace();
                 }
             }
-            if (app instanceof DesktopApp desktopApp) {
-                desktopApp.toast("导入了" + importedFiles.size() + "个Txt词库文件到目录：" + saveDir);
-            }
+            app.toast("导入了" + importedFiles.size() + "个Txt词库文件到目录：" + saveDir);
         });
         //
         Button addMdx = new Button("导入词库（*.mdx）");
@@ -370,9 +356,7 @@ public class DictionaryContext {
                     e.printStackTrace();
                 }
             }
-            if (app instanceof DesktopApp desktopApp) {
-                desktopApp.toast("导入了" + importedFiles.size() + "个Mdx词库文件到目录：" + saveDir);
-            }
+            app.toast("导入了" + importedFiles.size() + "个Mdx词库文件到目录：" + saveDir);
         });
         //
         Button mdx2Txt = new Button("转换（mdx->txt）");
@@ -396,9 +380,7 @@ public class DictionaryContext {
                     e.printStackTrace();
                 }
             }
-            if (app instanceof DesktopApp desktopApp) {
-                desktopApp.toast("转换了" + importedFiles.size() + "个Mdx词库文件到原目录。");
-            }
+            app.toast("转换了" + importedFiles.size() + "个Mdx词库文件到原目录。");
         });
         //
         HBoxEx toolbar = new HBoxEx();
@@ -414,8 +396,8 @@ public class DictionaryContext {
     public static void openSearchScopesDialog(BaseApp app, RawProperty<Predicate<Dictionary>> filterProperty) {
         final TabPane settings = new TabPane();
 
-        configCurrentScopes(settings, filterProperty);
-        configDefaultScopes(settings, filterProperty);
+        configCurrentScopes(app, settings, filterProperty);
+        configDefaultScopes(app, settings, filterProperty);
 
         final DialogPane dialogPane = new DialogPane() {
             @Override
@@ -444,8 +426,8 @@ public class DictionaryContext {
         dialog.showAndWait();
     }
 
-    private static void configCurrentScopes(TabPane tabPane, RawProperty<Predicate<Dictionary>> filterProperty) {
-        final Predicate<Dictionary> defaultScopesFilter = getDefaultScopesFilter();
+    private static void configCurrentScopes(BaseApp app, TabPane tabPane, RawProperty<Predicate<Dictionary>> filterProperty) {
+        final Predicate<Dictionary> defaultScopesFilter = getDefaultScopesFilter(app);
 
         ListView<RawVal2<Dictionary, SimpleBooleanProperty>> listView = new ListView<>();
         VBox.setVgrow(listView, Priority.ALWAYS);
@@ -470,7 +452,7 @@ public class DictionaryContext {
                 excludedList.clear();
             }
             if (updateDefault) {
-                UserPrefs.prefs.setProperty("dictionary.defaultScopes", String.join("||", excludedList));
+                app.config.setProperty("dictionary.defaultScopes", String.join("||", excludedList));
             }
             //
             filterProperty.set(d -> excludedList.isEmpty() || !excludedList.contains(d.name));
@@ -515,8 +497,8 @@ public class DictionaryContext {
         tabPane.getTabs().add(tab);
     }
 
-    private static void configDefaultScopes(TabPane tabPane, RawProperty<Predicate<Dictionary>> filterProperty) {
-        final Predicate<Dictionary> defaultScopesFilter = getDefaultScopesFilter();
+    private static void configDefaultScopes(BaseApp app, TabPane tabPane, RawProperty<Predicate<Dictionary>> filterProperty) {
+        final Predicate<Dictionary> defaultScopesFilter = getDefaultScopesFilter(app);
 
         ListView<RawVal2<Dictionary, SimpleBooleanProperty>> listView = new ListView<>();
         VBox.setVgrow(listView, Priority.ALWAYS);
@@ -540,7 +522,7 @@ public class DictionaryContext {
             if (excludedList.size() == listView.getItems().size()) {
                 excludedList.clear();
             }
-            UserPrefs.prefs.setProperty("dictionary.defaultScopes", String.join("||", excludedList));
+            app.config.setProperty("dictionary.defaultScopes", String.join("||", excludedList));
             //
             if (updateCurrent) {
                 filterProperty.set(d -> excludedList.isEmpty() || !excludedList.contains(d.name));
@@ -586,12 +568,15 @@ public class DictionaryContext {
         tabPane.getTabs().add(tab);
     }
 
-    public static void openSearcherInEmbed(WorkbenchApp app, String text) {
+    public static void openSearcherInEmbed(BaseApp app, String text) {
+        if (!(app instanceof WorkbenchApp workbenchApp)) {
+            app.toast("Embed Mode Fail");
+            return;
+        }
         // 有从外部打开的全文搜索，此时需要隐藏透明层
         OpaqueLayer.hideOpaqueLayer(app.getPrimaryGlass());
 
-        final WorkbenchPane workbench = app.workbench();
-
+        WorkbenchPane workbench = workbenchApp.workbench();
         // 优先查找可用的搜索视图，以避免打开太多未使用的搜索视图
         DictionaryEmbedSearcher searcher = workbench.mainViews.getTabs().stream()
                 .map(tab -> (tab.getUserData() instanceof DictionaryEmbedSearcher view && view.isNeverSearched()) ? view : null)
@@ -607,20 +592,19 @@ public class DictionaryContext {
         });
     }
 
-    public static void openSearcherInLayer(WorkbenchApp app, String text) {
+    public static void openSearcherInLayer(BaseApp app, String text) {
         // 隐藏透明层
-        OpaqueLayer.hideOpaqueLayer(app.getPrimaryGlass());
+        final StackPane glass = app.getPrimaryGlass();
+        OpaqueLayer.hideOpaqueLayer(glass);
 
-        final WorkbenchPane workbench = app.workbench();
-
-        DictionaryLookupLayer lookupLayer = (DictionaryLookupLayer) workbench.getProperties().get(DictionaryLookupLayer.class);
+        DictionaryLookupLayer lookupLayer = (DictionaryLookupLayer) glass.getProperties().get(DictionaryLookupLayer.class);
         if (null == lookupLayer) {
-            workbench.getProperties().put(DictionaryLookupLayer.class, lookupLayer = new DictionaryLookupLayer(app));
+            glass.getProperties().put(DictionaryLookupLayer.class, lookupLayer = new DictionaryLookupLayer(app));
         }
         lookupLayer.show(text != null ? text : lookupLayer.inputQuery);
     }
 
-    public static void openSearcherInPopup(WorkbenchApp app, String text) {
+    public static void openSearcherInPopup(BaseApp app, String text) {
         final Dialog<?> dialog = new Dialog<>();
         final DialogPane dialogPane = new DialogPane() {
             @Override
@@ -659,8 +643,8 @@ public class DictionaryContext {
         dialog.show();
     }
 
-    public static void openSearcher(WorkbenchApp app, String text) {
-        String searcherPlace = UserPrefs.prefs.getString("dictionary.searcherPlace", "popup");
+    public static void openSearcher(BaseApp app, String text) {
+        String searcherPlace = app.config.getString("dictionary.searcherPlace", "popup");
         if ("layer".equalsIgnoreCase(searcherPlace)) {
             openSearcherInLayer(app, text);
         } else if ("popup".equalsIgnoreCase(searcherPlace)) {
@@ -670,7 +654,7 @@ public class DictionaryContext {
         }
     }
 
-    public static void openViewer(WorkbenchApp app, Dictionary.Entry entry) {
+    public static void openViewer(BaseApp app, Dictionary.Entry entry) {
         final String windowId = entry.dictionary.id + " /" + entry.id;
 
         //
@@ -681,7 +665,7 @@ public class DictionaryContext {
         }
         //
         final String windowTitle = entry.title() + " -- " + entry.dictionary.name + "  -  " + app.getAppName();
-        FxHelper.showHtmlViewerWindow(app, windowId, windowTitle, dialog -> new DictionaryViewer(app.workbench(), entry) {
+        FxHelper.showHtmlViewerWindow(app, windowId, windowTitle, dialog -> new DictionaryViewer(app, entry) {
             @Override
             void onSearchAllDictionaries(ActionEvent event) {
                 dialog.setTitle(entry.title() + " -- 全部词典  -  " + app.getAppName());

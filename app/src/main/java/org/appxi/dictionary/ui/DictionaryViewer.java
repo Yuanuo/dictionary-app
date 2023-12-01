@@ -12,13 +12,13 @@ import org.appxi.dictionary.Dictionary;
 import org.appxi.dictionary.DictionaryHelper;
 import org.appxi.dictionary.MatchType;
 import org.appxi.event.EventHandler;
+import org.appxi.javafx.app.BaseApp;
+import org.appxi.javafx.app.web.WebApp;
 import org.appxi.javafx.app.web.WebToolPrinter;
 import org.appxi.javafx.app.web.WebViewer;
 import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.MaterialIcon;
 import org.appxi.javafx.web.WebPane;
-import org.appxi.javafx.workbench.WorkbenchApp;
-import org.appxi.javafx.workbench.WorkbenchPane;
 import org.appxi.prefs.UserPrefs;
 import org.appxi.util.FileHelper;
 import org.appxi.util.StringHelper;
@@ -27,6 +27,8 @@ import org.appxi.util.ext.HanLang;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class DictionaryViewer extends WebViewer {
     public static final Object AK_BY_SELECTION = new Object();
@@ -37,8 +39,11 @@ public class DictionaryViewer extends WebViewer {
     private Button searchAll;
     private final EventHandler<HanLang.Event> _handleHanLangChanged = event -> navigate(null);
 
-    DictionaryViewer(WorkbenchPane workbench, Dictionary.Entry entry) {
-        super(workbench);
+    Supplier<List<String>> webIncludesSupplier;
+    Function<String, String> htmlDocumentWrapper;
+
+    DictionaryViewer(BaseApp app, Dictionary.Entry entry) {
+        super(app);
         this.entry = entry;
     }
 
@@ -72,6 +77,11 @@ public class DictionaryViewer extends WebViewer {
         DictionaryViewer.addShortcutMenu(this);
         DictionaryViewer.addShortcutMenu_(this);
         DictionaryViewer.addSelectionEvent(this);
+        //
+        if (app instanceof WebApp webApp) {
+            this.webIncludesSupplier = webApp.webIncludesSupplier();
+            this.htmlDocumentWrapper = webApp.htmlDocumentWrapper();
+        }
     }
 
     @Override
@@ -101,8 +111,10 @@ public class DictionaryViewer extends WebViewer {
         final StringBuilder buff = new StringBuilder();
         //
         buff.append("<!DOCTYPE html><html lang=\"zh\"><head><meta charset=\"UTF-8\">");
-        if (null != DictionaryContext.webIncludesSupplier) {
-            StringHelper.buildWebIncludes(buff, DictionaryContext.webIncludesSupplier.get());
+
+
+        if (null != webIncludesSupplier) {
+            StringHelper.buildWebIncludes(buff, webIncludesSupplier.get());
         }
         buff.append("""
                 <script type="text/javascript">
@@ -123,8 +135,8 @@ public class DictionaryViewer extends WebViewer {
         } else {
             htmlDoc.append(DictionaryHelper.toHtmlDocument(entry));
         }
-        if (null != DictionaryContext.htmlDocumentWrapper) {
-            buff.append(DictionaryContext.htmlDocumentWrapper.apply(htmlDoc.toString()));
+        if (null != htmlDocumentWrapper) {
+            buff.append(htmlDocumentWrapper.apply(htmlDoc.toString()));
         } else {
             buff.append(htmlDoc);
         }
@@ -141,7 +153,7 @@ public class DictionaryViewer extends WebViewer {
     protected void onWebEngineLoadSucceeded() {
         super.onWebEngineLoadSucceeded();
         //
-        if (null != searchAll && UserPrefs.prefs.getBoolean("dictionary.viewerLoadAll", false)) {
+        if (null != searchAll && app.config.getBoolean("dictionary.viewerLoadAll", false)) {
             FxHelper.runThread(150, () -> searchAll.fire());
         }
     }
@@ -163,7 +175,7 @@ public class DictionaryViewer extends WebViewer {
 
     public static void addShortcutKeys(WebViewer webViewer) {
         final WebPane webPane = webViewer.webPane;
-        final WorkbenchApp app = webViewer.app;
+        final BaseApp app = webViewer.app;
         // Ctrl + D
         webPane.shortcutKeys.put(new KeyCodeCombination(KeyCode.D, KeyCombination.SHORTCUT_DOWN), event -> {
             // 如果有选中文字，则按选中文字处理
@@ -179,7 +191,7 @@ public class DictionaryViewer extends WebViewer {
 
     public static void addShortcutMenu(WebViewer webViewer) {
         final WebPane webPane = webViewer.webPane;
-        final WorkbenchApp app = webViewer.app;
+        final BaseApp app = webViewer.app;
         //
         webPane.shortcutMenu.add(selection -> {
             MenuItem menuItem = new MenuItem();
@@ -197,7 +209,7 @@ public class DictionaryViewer extends WebViewer {
 
     private static void addShortcutMenu_(WebViewer webViewer) {
         final WebPane webPane = webViewer.webPane;
-        final WorkbenchApp app = webViewer.app;
+        final BaseApp app = webViewer.app;
         //
         webPane.shortcutMenu.add(selection -> {
             MenuItem menuItem = new MenuItem("复制引用");
@@ -209,12 +221,12 @@ public class DictionaryViewer extends WebViewer {
 
     public static void addSelectionEvent(WebViewer webViewer) {
         final WebPane webPane = webViewer.webPane;
-        final WorkbenchApp app = webViewer.app;
+        final BaseApp app = webViewer.app;
         //
         webPane.selectionListeners.add((shortcutDown, selection) -> {
             Object act = webPane.getProperties().get(DictionaryViewer.AK_BY_SELECTION);
             if (null == act) {
-                act = UserPrefs.prefs.getString("dictionary.bySelection", "selection&shortcut1");
+                act = app.config.getString("dictionary.bySelection", "selection&shortcut1");
             }
             if ("selection&shortcut1".equals(act) && shortcutDown || "selection&shortcut0".equals(act) && !shortcutDown) {
                 String text = StringHelper.trimChars(selection.trims, 20, "");

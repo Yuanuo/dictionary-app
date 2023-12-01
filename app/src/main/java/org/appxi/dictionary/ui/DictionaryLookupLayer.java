@@ -11,10 +11,10 @@ import javafx.scene.layout.Priority;
 import org.appxi.dictionary.Dictionaries;
 import org.appxi.dictionary.Dictionary;
 import org.appxi.dictionary.MatchType;
+import org.appxi.javafx.app.BaseApp;
 import org.appxi.javafx.control.LookupLayer;
 import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.MaterialIcon;
-import org.appxi.javafx.workbench.WorkbenchApp;
 import org.appxi.property.RawProperty;
 import org.appxi.smartcn.convert.ChineseConvertors;
 
@@ -26,14 +26,13 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
-    final WorkbenchApp app;
+    final BaseApp app;
     String inputQuery, finalQuery;
     final RawProperty<Predicate<Dictionary>> filterProperty = new RawProperty<>();
 
-    DictionaryLookupLayer(WorkbenchApp app) {
+    DictionaryLookupLayer(BaseApp app) {
         super(app.getPrimaryGlass());
         this.app = app;
-
         //
 //            sourceInfo.setGraphic(MaterialIcon.MANAGE_SEARCH.graphic());
         sourceInfo.setTooltip(new Tooltip("查词范围设置"));
@@ -46,7 +45,7 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
             reset();
             search(searchedText);
         });
-        filterProperty.set(DictionaryContext.getDefaultScopesFilter());
+        filterProperty.set(DictionaryContext.getDefaultScopesFilter(app));
     }
 
     private Dictionaries getSearchScopes() {

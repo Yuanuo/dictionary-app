@@ -4,34 +4,57 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.appxi.dictionary.pref.AboutController;
 import org.appxi.dictionary.pref.PreferencesController;
+import org.appxi.dictionary.ui.DictionaryContext;
 import org.appxi.dictionary.ui.DictionaryController;
 import org.appxi.file.FileWatcher;
+import org.appxi.javafx.app.AppEvent;
+import org.appxi.javafx.app.BaseApp;
+import org.appxi.javafx.app.web.WebApp;
+import org.appxi.javafx.app.web.WebViewer;
+import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.VisualEvent;
 import org.appxi.javafx.web.WebPane;
-import org.appxi.javafx.workbench.WorkbenchApp;
 import org.appxi.javafx.workbench.WorkbenchPane;
 import org.appxi.javafx.workbench.WorkbenchPart;
+import org.appxi.prefs.UserPrefs;
+import org.appxi.smartcn.convert.ChineseConvertors;
+import org.appxi.util.ext.HanLang;
 
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-public class App extends WorkbenchApp {
+public class App extends WorkbenchApp1 implements WebApp {
     public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
     public static final String VERSION = "23.11.22";
 
+    public final HanLang.Provider hanTextProvider;
+
     public App() {
+        super(UserPrefs.dataDir());
+        this.hanTextProvider = new HanLang.Provider(config, eventBus);
     }
 
     @Override
-    public void init() throws Exception {
+    public void init() {
         super.init();
         //
         new Thread(WebPane::preloadLibrary).start();
-        AppContext.setupInitialize(this);
+
+        //
+        settings.add(() -> FxHelper.optionForHanLang(hanTextProvider, "以 简体/繁体 显示阅读视图中文字符"));
+        //
+        eventBus.addEventHandler(AppEvent.STARTED, e -> FxHelper.runThread(30, () -> DictionaryContext.openSearcherInEmbed(this, null)));
+
+        //
+        DictionaryContext.setupDirectories(this);
+        DictionaryContext.setupApplication(this);
     }
 
     @Override
@@ -42,7 +65,7 @@ public class App extends WorkbenchApp {
                     .ifPresent(v -> primaryStage.getScene().getStylesheets().add(v.toExternalForm()));
         } else {
             Scene scene = primaryStage.getScene();
-            visualProvider.visual().unAssign(scene);
+            visualProvider().visual().unAssign(scene);
             watchCss(scene, Path.of("../../appxi-javafx/src/main/resources/org/appxi/javafx/visual/visual_desktop.css"));
             watchCss(scene, Path.of("src/main/resources/org/appxi/dictionary/app/app_desktop.css"));
             scene.getStylesheets().forEach(System.out::println);
@@ -112,5 +135,24 @@ public class App extends WorkbenchApp {
         result.add(new PreferencesController(workbench));
         result.add(new AboutController(workbench));
         return result;
+    }
+
+    @Override
+    public Supplier<List<String>> webIncludesSupplier() {
+        return () -> {
+            List<String> result = WebViewer.getWebIncludeURIs();
+            final Path dir = BaseApp.appDir().resolve("template/web-incl");
+            result.addAll(Stream.of("html-viewer.css", "html-viewer.js")
+                    .map(s -> dir.resolve(s).toUri().toString())
+                    .toList()
+            );
+            result.add("<link id=\"CSS\" rel=\"stylesheet\" type=\"text/css\" href=\"" + visualProvider().getWebStyleSheetURI() + "\">");
+            return result;
+        };
+    }
+
+    @Override
+    public Function<String, String> htmlDocumentWrapper() {
+        return text -> ChineseConvertors.convert(text, null, hanTextProvider.get());
     }
 }

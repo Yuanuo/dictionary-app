@@ -5,7 +5,6 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import org.appxi.javafx.helper.FxHelper;
-import org.appxi.javafx.settings.SettingsList;
 import org.appxi.javafx.settings.SettingsPane;
 import org.appxi.javafx.visual.MaterialIcon;
 import org.appxi.javafx.workbench.WorkbenchPane;
@@ -25,14 +24,23 @@ public class PreferencesController extends WorkbenchPartController implements Wo
 
     @Override
     public void postConstruct() {
-        app.visualProvider.addSettings();
+        app.settings.add(() -> app.visualProvider().optionForFontSmooth());
+        app.settings.add(() -> app.visualProvider().optionForFontName());
+        app.settings.add(() -> app.visualProvider().optionForFontSize());
+        app.settings.add(() -> app.visualProvider().optionForTheme());
+        app.settings.add(() -> app.visualProvider().optionForSwatch());
+        app.settings.add(() -> app.visualProvider().optionForWebFontName());
+        app.settings.add(() -> app.visualProvider().optionForWebFontSize());
+        app.settings.add(() -> app.visualProvider().optionForWebPageColor());
+        app.settings.add(() -> app.visualProvider().optionForWebTextColor());
+        //
     }
 
     @Override
     public void activeViewport(boolean firstTime) {
         SettingsPane settingsPane = new SettingsPane();
 
-        SettingsList.get().forEach(s -> settingsPane.getOptions().add(s.get()));
+        app.settings.forEach(s -> settingsPane.getOptions().add(s.get()));
 
         final DialogPane dialogPane = new DialogPane() {
             @Override
