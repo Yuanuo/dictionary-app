@@ -60,7 +60,7 @@
                             <name>smartWords</name>
                             <description>smartWords ! the Smart Dictionary</description>
                             <identifier>appxi.smartWords</identifier>
-                            <icon>${project.basedir}/win/app.ico</icon>
+                            <icon>app.ico</icon>
                             <installDir>smartWords</installDir>
                             <module>${ext.module}</module>
                             <jvmArgs><jvmArg>${ext.jvmArgs}</jvmArg></jvmArgs>
@@ -86,11 +86,67 @@
                                 <dirChooser>false</dirChooser>
                                 <perUserInstall>true</perUserInstall>
                                 <console>false</console>
-                                <menu>false</menu>
-                                <shortcut>false</shortcut>
+                                <menu>true</menu>
+                                <shortcut>true</shortcut>
                                 <upgradeUUID>0D713134-8256-3C7E-BBCF-CC08EB76ABEC</upgradeUUID>
                             </windowsOptions>
                             <resourceDir>${project.basedir}/win</resourceDir>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>net.agilhard.maven.plugins</groupId>
+                        <artifactId>jlink-jpackager-maven-plugin</artifactId>
+                        <version>1.0.0-SNAPSHOT</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <noHeaderFiles>true</noHeaderFiles>
+                            <noManPages>true</noManPages>
+                            <stripDebug>true</stripDebug>
+                            <compress>2</compress>
+                            <!--   /////////////////////////////////////////////////////////////////  -->
+                            <vendor>AppXI</vendor>
+                            <name>smartWords</name>
+                            <description>smartWords ! the Smart Dictionary</description>
+                            <identifier>appxi.smartWords</identifier>
+                            <icon>app.icns</icon>
+                            <installDir>/Applications</installDir>
+                            <module>${ext.module}</module>
+                            <jvmArgs><jvmArg>${ext.jvmArgs}</jvmArg></jvmArgs>
+                            <outputDirectoryAutomaticJars>${ext.nonMods.lib}</outputDirectoryAutomaticJars>
+                            <outputDirectoryClasspathJars>${ext.nonMods.lib}</outputDirectoryClasspathJars>
+                            <inputDirectoryPackage>${ext.nonMods}</inputDirectoryPackage>
+                            <packagingResources>
+                                <resources>
+                                   <resource>
+                                       <directory>${project.basedir}/../../appxi-dictionary.dd</directory>
+                                       <targetPath>dict</targetPath>
+                                   </resource>
+                                    <resource>
+                                        <directory>${project.basedir}/../../appxi-javafx/repo/web-incl</directory>
+                                        <targetPath>template/web-incl</targetPath>
+                                    </resource>
+                                </resources>
+                            </packagingResources>
+                            <!--   /////////////////////////////////////////////////////////////////  -->
+                            <packageType>dmg</packageType>
+                            <macOptions>
+                                <macType>dmg</macType>
+                                <bundleName>Smart Dictionary</bundleName>
+                                <bundleIdentifier>appxi.smartWords</bundleIdentifier>
+                            </macOptions>
                         </configuration>
                     </plugin>
                 </plugins>

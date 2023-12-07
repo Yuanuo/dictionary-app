@@ -71,6 +71,7 @@
 
     <Feature Id="DefaultFeature" Title="!(loc.MainFeatureTitle)" Level="1">
       <ComponentGroupRef Id="Shortcuts"/>
+      <ComponentGroupRef Id="ShortcutsX"/>
       <ComponentGroupRef Id="Files"/>
       <ComponentGroupRef Id="FileAssociations"/>
     </Feature>
@@ -103,5 +104,36 @@
     </InstallExecuteSequence>
 
     <!-- -->
+    <DirectoryRef Id="dir067f834bb66033e3860026f1f5b758e8">
+      <Component Win64="yes" Id="cshortcut770826ba7a8a3bcca381f4adee1013b7" Guid="{770826ba-7a8a-3bcc-a381-f4adee1013b7}">
+        <RegistryKey Root="HKCU" Key="Software\$(var.JpAppVendor)\$(var.JpAppName)\$(var.JpAppVersion)">
+          <RegistryValue Type="string" KeyPath="yes" Name="ProductCode" Value="[ProductCode]"></RegistryValue>
+        </RegistryKey>
+        <RemoveFolder Id="rm83e833d5e9ce3033827c5edd9531e335_1" On="uninstall"></RemoveFolder>
+        <Shortcut Id="shortcut770826ba7a8a3bcca381f4adee1013b7" Name="$(var.JpAppTitle)" WorkingDirectory="INSTALLDIR" Advertise="no" IconIndex="0"
+            Target="[#file4d73d41ab2e73fe4bacebef4c1abc5f6]"></Shortcut>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="DesktopFolder">
+      <Component Win64="yes" Id="cshortcut08d6a2c01b9232ef9e84ca947efb794f" Guid="{08d6a2c0-1b92-32ef-9e84-ca947efb794f}">
+        <RegistryKey Root="HKCU" Key="Software\$(var.JpAppVendor)\$(var.JpAppName)\$(var.JpAppVersion)">
+          <RegistryValue Type="string" KeyPath="yes" Name="ProductCode" Value="[ProductCode]"></RegistryValue>
+        </RegistryKey>
+        <Shortcut Id="shortcut08d6a2c01b9232ef9e84ca947efb794f" Name="$(var.JpAppTitle)" WorkingDirectory="INSTALLDIR" Advertise="no" IconIndex="0"
+            Target="[#file4d73d41ab2e73fe4bacebef4c1abc5f6]"></Shortcut>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="TARGETDIR">
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="dir067f834bb66033e3860026f1f5b758e8" Name="$(var.JpAppTitle)"></Directory>
+      </Directory>
+    </DirectoryRef>
+    <DirectoryRef Id="TARGETDIR">
+      <Directory Id="DesktopFolder"></Directory>
+    </DirectoryRef>
+    <ComponentGroup Id="ShortcutsX">
+      <ComponentRef Id="cshortcut770826ba7a8a3bcca381f4adee1013b7"></ComponentRef>
+      <ComponentRef Id="cshortcut08d6a2c01b9232ef9e84ca947efb794f"></ComponentRef>
+    </ComponentGroup>
   </Product>
 </Wix>
