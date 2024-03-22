@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 public class App extends WorkbenchApp1 implements WebApp {
     public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
-    public static final String VERSION = "23.11.22";
+    public static final String VERSION = "24.03.22";
 
     public final HanLang.Provider hanTextProvider;
 
