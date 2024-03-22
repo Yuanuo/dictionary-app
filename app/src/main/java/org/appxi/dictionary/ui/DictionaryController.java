@@ -13,8 +13,8 @@ public class DictionaryController extends WorkbenchPartController implements Wor
         super(workbench);
 
         this.id.set("SEARCH-DICTIONARY-LAYER");
-        this.title.set("查词典");
-        this.tooltip.set("查词典 (Ctrl+D)");
+        this.title.set("查词条");
+        this.tooltip.set("查词条 (Ctrl+D)");
         this.graphic.set(MaterialIcon.TRANSLATE.graphic());
     }
 
@@ -32,6 +32,6 @@ public class DictionaryController extends WorkbenchPartController implements Wor
 
     @Override
     public void activeViewport(boolean firstTime) {
-        DictionaryContext.openSearcher(app, null);
+        app.eventBus.fireEvent(new EntryEvent(EntryEvent.SEARCH, null, null));
     }
 }

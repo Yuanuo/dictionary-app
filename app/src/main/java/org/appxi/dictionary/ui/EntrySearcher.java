@@ -25,31 +25,31 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
+class EntrySearcher extends LookupLayer<Dictionary.Entry> {
     final BaseApp app;
     String inputQuery, finalQuery;
-    final RawProperty<Predicate<Dictionary>> filterProperty = new RawProperty<>();
+    final RawProperty<Predicate<Dictionary>> source = new RawProperty<>();
 
-    DictionaryLookupLayer(BaseApp app) {
+    EntrySearcher(BaseApp app, Predicate<Dictionary> sourceFilter) {
         super(app.getPrimaryGlass());
         this.app = app;
         //
-//            sourceInfo.setGraphic(MaterialIcon.MANAGE_SEARCH.graphic());
-        sourceInfo.setTooltip(new Tooltip("查词范围设置"));
-        sourceInfo.setOnAction(actionEvent -> DictionaryContext.openSearchScopesDialog(app, filterProperty));
+        sourceInfo.setGraphic(MaterialIcon.MANAGE_SEARCH.graphic());
+        sourceInfo.setTooltip(new Tooltip("查词条范围设置"));
+        sourceInfo.setOnAction(actionEvent -> DictionaryContext.openScopesDialog(app, DictionaryContext.DEF_SCOPES, source));
 
         //
-        filterProperty.addListener((ov, nv) -> {
-            sourceInfo.setText("在 %d 词条中查:".formatted(getSearchScopes().sizeEntries()));
+        source.addListener((ov, nv) -> sourceInfo.setText("在 %d 词条中查:".formatted(getSearchScopes().sizeEntries())));
+        source.set(sourceFilter);
+        source.addListener((ov, nv) -> {
             String searchedText = getSearchedText();
             reset();
             search(searchedText);
         });
-        filterProperty.set(DictionaryContext.getDefaultScopesFilter(app));
     }
 
     private Dictionaries getSearchScopes() {
-        final Dictionaries dictionaries = Dictionaries.def.filtered(filterProperty.get());
+        final Dictionaries dictionaries = Dictionaries.def.filtered(source.get());
         return dictionaries.size() > 0 ? dictionaries : Dictionaries.def;
     }
 
@@ -60,7 +60,7 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
 
     @Override
     protected String getHeaderText() {
-        return "查词典";
+        return "查词条";
     }
 
     @Override
@@ -125,7 +125,7 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
             lookupResult = new LookupResult<>(total, count, new ArrayList<>(result.subList(0, resultLimit)));
             result.clear();
         } else {
-            lookupResult = new LookupResult(total, count, result);
+            lookupResult = new LookupResult<>(total, count, result);
         }
         System.gc();
         return lookupResult;
@@ -157,6 +157,6 @@ class DictionaryLookupLayer extends LookupLayer<Dictionary.Entry> {
 
     @Override
     protected void handleEnterOrDoubleClickActionOnSearchResultList(InputEvent event, Dictionary.Entry item) {
-        DictionaryContext.openViewer(app, item);
+        app.eventBus.fireEvent(new EntryEvent(EntryEvent.SEARCH_EXACT, item.title(), item.dictionary.id));
     }
 }

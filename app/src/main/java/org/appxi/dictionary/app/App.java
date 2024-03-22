@@ -6,6 +6,7 @@ import org.appxi.dictionary.pref.AboutController;
 import org.appxi.dictionary.pref.PreferencesController;
 import org.appxi.dictionary.ui.DictionaryContext;
 import org.appxi.dictionary.ui.DictionaryController;
+import org.appxi.dictionary.ui.EntryEvent;
 import org.appxi.file.FileWatcher;
 import org.appxi.javafx.app.AppEvent;
 import org.appxi.javafx.app.BaseApp;
@@ -50,7 +51,7 @@ public class App extends WorkbenchApp1 implements WebApp {
         //
         settings.add(() -> FxHelper.optionForHanLang(hanTextProvider, "以 简体/繁体 显示阅读视图中文字符"));
         //
-        eventBus.addEventHandler(AppEvent.STARTED, e -> FxHelper.runThread(30, () -> DictionaryContext.openSearcherInEmbed(this, null)));
+        eventBus.addEventHandler(AppEvent.STARTED, e -> FxHelper.runThread(30, () -> eventBus.fireEvent(new EntryEvent(EntryEvent.SEARCH, null, null))));
 
         //
         DictionaryContext.setupDirectories(this);
