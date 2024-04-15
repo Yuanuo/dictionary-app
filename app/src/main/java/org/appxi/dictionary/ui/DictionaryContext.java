@@ -138,14 +138,14 @@ public class DictionaryContext {
             });
         });
         //
-        app.settings.add(() -> optionForSelectionEvent(app));
-        app.settings.add(() -> optionForDataPaths(app));
+        app.options.add(() -> optionForSelectionEvent(app));
+        app.options.add(() -> optionForDataPaths(app));
     }
 
     private static List<Path> getDataPaths(BaseApp app) {
         final List<Path> list = new ArrayList<>();
-        if (BaseApp.productionMode) {
-            list.add(BaseApp.appDir().resolve("dict"));
+        if (!FxHelper.isDevMode) {
+            list.add(FxHelper.appDir().resolve("dict"));
         } else {
             final Path dictRepo;
             Path tmp = Path.of("../appxi-dictionary.dd");

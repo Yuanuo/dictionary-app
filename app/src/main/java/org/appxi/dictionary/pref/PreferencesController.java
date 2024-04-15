@@ -24,15 +24,15 @@ public class PreferencesController extends WorkbenchPartController implements Wo
 
     @Override
     public void postConstruct() {
-        app.settings.add(() -> app.visualProvider().optionForFontSmooth());
-        app.settings.add(() -> app.visualProvider().optionForFontName());
-        app.settings.add(() -> app.visualProvider().optionForFontSize());
-        app.settings.add(() -> app.visualProvider().optionForTheme());
-        app.settings.add(() -> app.visualProvider().optionForSwatch());
-        app.settings.add(() -> app.visualProvider().optionForWebFontName());
-        app.settings.add(() -> app.visualProvider().optionForWebFontSize());
-        app.settings.add(() -> app.visualProvider().optionForWebPageColor());
-        app.settings.add(() -> app.visualProvider().optionForWebTextColor());
+        app.options.add(() -> app.visualProvider().optionForFontSmooth());
+        app.options.add(() -> app.visualProvider().optionForFontName());
+        app.options.add(() -> app.visualProvider().optionForFontSize());
+        app.options.add(() -> app.visualProvider().optionForTheme());
+        app.options.add(() -> app.visualProvider().optionForSwatch());
+        app.options.add(() -> app.visualProvider().optionForWebFontName());
+        app.options.add(() -> app.visualProvider().optionForWebFontSize());
+        app.options.add(() -> app.visualProvider().optionForWebPageColor());
+        app.options.add(() -> app.visualProvider().optionForWebTextColor());
         //
     }
 
@@ -40,7 +40,7 @@ public class PreferencesController extends WorkbenchPartController implements Wo
     public void activeViewport(boolean firstTime) {
         SettingsPane settingsPane = new SettingsPane();
 
-        app.settings.forEach(s -> settingsPane.getOptions().add(s.get()));
+        app.options.forEach(s -> settingsPane.getOptions().add(s.get()));
 
         final DialogPane dialogPane = new DialogPane() {
             @Override

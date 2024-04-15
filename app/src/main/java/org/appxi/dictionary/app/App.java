@@ -9,12 +9,13 @@ import org.appxi.dictionary.ui.DictionaryController;
 import org.appxi.dictionary.ui.EntryEvent;
 import org.appxi.file.FileWatcher;
 import org.appxi.javafx.app.AppEvent;
-import org.appxi.javafx.app.BaseApp;
 import org.appxi.javafx.app.web.WebApp;
 import org.appxi.javafx.app.web.WebViewer;
 import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.VisualEvent;
+import org.appxi.javafx.visual.VisualProvider;
 import org.appxi.javafx.web.WebPane;
+import org.appxi.javafx.workbench.WorkbenchApp;
 import org.appxi.javafx.workbench.WorkbenchPane;
 import org.appxi.javafx.workbench.WorkbenchPart;
 import org.appxi.prefs.UserPrefs;
@@ -30,10 +31,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class App extends WorkbenchApp1 implements WebApp {
+public class App extends WorkbenchApp implements WebApp {
     public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
     public static final String VERSION = "24.03.22";
+
+    private final VisualProvider visualProvider = new VisualProvider(this);
 
     public final HanLang.Provider hanTextProvider;
 
@@ -43,13 +46,18 @@ public class App extends WorkbenchApp1 implements WebApp {
     }
 
     @Override
+    public VisualProvider visualProvider() {
+        return visualProvider;
+    }
+
+    @Override
     public void init() {
         super.init();
         //
         new Thread(WebPane::preloadLibrary).start();
 
         //
-        settings.add(() -> FxHelper.optionForHanLang(hanTextProvider, "以 简体/繁体 显示阅读视图中文字符"));
+        options.add(() -> FxHelper.optionForHanLang(hanTextProvider, "以 简体/繁体 显示阅读视图中文字符"));
         //
         eventBus.addEventHandler(AppEvent.STARTED, e -> FxHelper.runThread(30, () -> eventBus.fireEvent(new EntryEvent(EntryEvent.SEARCH, null, null))));
 
@@ -61,7 +69,7 @@ public class App extends WorkbenchApp1 implements WebApp {
     @Override
     protected void showing(Stage primaryStage) {
         super.showing(primaryStage);
-        if (productionMode) {
+        if (!FxHelper.isDevMode) {
             Optional.ofNullable(App.class.getResource("app_desktop.css"))
                     .ifPresent(v -> primaryStage.getScene().getStylesheets().add(v.toExternalForm()));
         } else {
@@ -73,6 +81,12 @@ public class App extends WorkbenchApp1 implements WebApp {
         }
 
         AppPreloader.hide();
+    }
+
+    @Override
+    protected void stopped() {
+        super.stopped();
+        System.exit(0);
     }
 
     private void watchCss(Scene scene, Path file) {
@@ -117,7 +131,7 @@ public class App extends WorkbenchApp1 implements WebApp {
     }
 
     @Override
-    protected List<URL> getAppIcons() {
+    public List<URL> getAppIcons() {
         final String[] iconSizes = new String[]{"32", "64", "128", "256"};
         final List<URL> result = new ArrayList<>(iconSizes.length);
         for (String iconSize : iconSizes) {
@@ -142,7 +156,7 @@ public class App extends WorkbenchApp1 implements WebApp {
     public Supplier<List<String>> webIncludesSupplier() {
         return () -> {
             List<String> result = WebViewer.getWebIncludeURIs();
-            final Path dir = BaseApp.appDir().resolve("template/web-incl");
+            final Path dir = FxHelper.appDir().resolve("template/web-incl");
             result.addAll(Stream.of("html-viewer.css", "html-viewer.js")
                     .map(s -> dir.resolve(s).toUri().toString())
                     .toList()
