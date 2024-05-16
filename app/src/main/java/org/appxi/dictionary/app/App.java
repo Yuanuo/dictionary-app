@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 public class App extends WorkbenchApp implements WebApp {
     public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
-    public static final String VERSION = "24.04.15";
+    public static final String VERSION = "24.05.16";
 
     private final VisualProvider visualProvider = new VisualProvider(this);
 
