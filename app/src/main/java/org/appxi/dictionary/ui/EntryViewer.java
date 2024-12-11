@@ -15,6 +15,7 @@ import org.appxi.dictionary.Dictionaries;
 import org.appxi.dictionary.Dictionary;
 import org.appxi.dictionary.DictionaryHelper;
 import org.appxi.dictionary.MatchType;
+import org.appxi.event.Event;
 import org.appxi.event.EventHandler;
 import org.appxi.javafx.app.BaseApp;
 import org.appxi.javafx.app.web.WebAction_Goto;
@@ -40,7 +41,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class EntryViewer extends WebViewer {
-    private final EventHandler<HanLang.Event> _handleHanLangChanged = event -> navigate(null);
+    private final EventHandler<Event> _handleHanLangChanged = event -> navigate(null);
 
     private Supplier<List<String>> webIncludesSupplier;
     private Function<String, String> htmlDocumentWrapper;
@@ -101,7 +102,7 @@ public class EntryViewer extends WebViewer {
         });
         sourceInfo.setOnAction(actionEvent -> DictionaryContext.openScopesDialog(app, DictionaryContext.DEF_SCOPES2, source));
         //
-        app.eventBus.addEventHandler(HanLang.Event.CHANGED, _handleHanLangChanged);
+        app.eventBus.addEventHandler(HanLang.CHANGED, _handleHanLangChanged);
         //
         WebViewer.addShortcutKeys(this);
         EntryViewer.addShortcutKeys(this);
@@ -118,7 +119,7 @@ public class EntryViewer extends WebViewer {
 
     @Override
     public void deinitialize() {
-        app.eventBus.removeEventHandler(HanLang.Event.CHANGED, _handleHanLangChanged);
+        app.eventBus.removeEventHandler(HanLang.CHANGED, _handleHanLangChanged);
         super.deinitialize();
     }
 

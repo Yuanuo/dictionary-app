@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 public class App extends WorkbenchApp implements WebApp {
     public static final String ID = "smartWords";
     public static final String NAME = "Smart Dictionary";
-    public static final String VERSION = "24.05.16";
+    public static final String VERSION = "24.12.11";
 
     private final VisualProvider visualProvider = new VisualProvider(this);
 
@@ -112,7 +112,7 @@ public class App extends WorkbenchApp implements WebApp {
             if (null == css) return;
             System.out.println("CSS < " + css);
             if (css.endsWith("web.css")) {
-                eventBus.fireEvent(new VisualEvent(VisualEvent.SET_STYLE, null));
+                eventBus.fireEvent(VisualEvent.SET_STYLE.of());
             } else if (scene.getStylesheets().contains(css)) {
                 final int idx = scene.getStylesheets().indexOf(css);
                 String finalCss = css;

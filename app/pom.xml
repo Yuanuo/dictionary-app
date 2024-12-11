@@ -6,7 +6,7 @@
 
     <groupId>org.appxi</groupId>
     <artifactId>dictionary-app</artifactId>
-    <version>24.05.16</version>
+    <version>24.12.11</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>22-ea+28</version>
+            <version>24-ea+19</version>
         </dependency>
         <dependency>
             <groupId>org.appxi</groupId>

@@ -4,8 +4,8 @@ import org.appxi.event.Event;
 import org.appxi.event.EventType;
 
 public class EntryEvent extends Event {
-    public static final EventType<EntryEvent> SEARCH = new EventType<>(Event.ANY, "DICT_SEARCH");
-    public static final EventType<EntryEvent> SEARCH_EXACT = new EventType<>(Event.ANY, "DICT_SEARCH_EXACT");
+    public static final EventType<EntryEvent> SEARCH = new EventType<>(Event.ANY);
+    public static final EventType<EntryEvent> SEARCH_EXACT = new EventType<>(Event.ANY);
 
     public final String text, dictionary;
 
