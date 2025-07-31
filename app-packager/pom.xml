@@ -6,7 +6,7 @@
 
     <groupId>org.appxi</groupId>
     <artifactId>dictionary-app-packager</artifactId>
-    <version>24.12.11</version>
+    <version>25.07.24</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -16,7 +16,16 @@
         <ext.nonMods>${project.build.directory}/jpacktool/jar</ext.nonMods>
         <ext.nonMods.lib>${project.build.directory}/jpacktool/jar/${project.version}</ext.nonMods.lib>
         <ext.module>appxi.dictionary/org.appxi.dictionary.app.AppLauncher</ext.module>
-        <ext.jvmArgs>-Djpackage.app-dir=$APPDIR -XX:+UseG1GC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8 --add-opens=javafx.web/javafx.scene.web=appxi.javafx --add-exports=javafx.web/com.sun.webkit=appxi.javafx --add-exports=javafx.web/com.sun.webkit.event=appxi.javafx --add-exports=javafx.web/com.sun.javafx.webkit=appxi.javafx --add-opens=javafx.graphics/com.sun.javafx.font=appxi.javafx -p $APPDIR/${project.version}</ext.jvmArgs>
+        <ext.jvmArgs>-Djpackage.app-dir=$APPDIR -XX:+UseG1GC -XX:+UseStringDeduplication -Dfile.encoding=UTF-8
+            --add-opens=javafx.web/javafx.scene.web=appxi.javafx
+            --add-exports=javafx.web/com.sun.webkit=appxi.javafx
+            --add-exports=javafx.web/com.sun.webkit.event=appxi.javafx
+            --add-exports=javafx.web/com.sun.javafx.webkit=appxi.javafx
+            --add-opens=javafx.graphics/com.sun.javafx.font=appxi.javafx
+            --add-opens=javafx.controls/javafx.scene.control=appxi.javafx
+            --enable-native-access=javafx.graphics
+            --enable-native-access=javafx.web
+            -p $APPDIR/${project.version}</ext.jvmArgs>
     </properties>
 
     <dependencies>
@@ -86,8 +95,8 @@
                                 <dirChooser>false</dirChooser>
                                 <perUserInstall>true</perUserInstall>
                                 <console>false</console>
-                                <menu>true</menu>
-                                <shortcut>true</shortcut>
+                                <menu>false</menu>
+                                <shortcut>false</shortcut>
                                 <upgradeUUID>0D713134-8256-3C7E-BBCF-CC08EB76ABEC</upgradeUUID>
                             </windowsOptions>
                             <resourceDir>${project.basedir}/win</resourceDir>

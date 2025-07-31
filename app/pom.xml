@@ -6,7 +6,7 @@
 
     <groupId>org.appxi</groupId>
     <artifactId>dictionary-app</artifactId>
-    <version>24.12.11</version>
+    <version>25.07.24</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>24-ea+19</version>
+            <version>26-ea</version>
         </dependency>
         <dependency>
             <groupId>org.appxi</groupId>
@@ -48,6 +48,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
