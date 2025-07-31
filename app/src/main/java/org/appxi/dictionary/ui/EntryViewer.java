@@ -243,14 +243,21 @@ public class EntryViewer extends WebViewer {
         });
     }
 
-    private static void addShortcutMenu2(WebViewer webViewer) {
+    private static void addShortcutMenu2(WebRenderer webViewer) {
         final WebPane webPane = webViewer.webPane;
         final BaseApp app = webViewer.app;
         //
         webPane.shortcutMenu.add(selection -> {
             MenuItem menuItem = new MenuItem("复制引用");
             menuItem.getProperties().put(WebPane.GRP_MENU, "copy");
-            menuItem.setDisable(true);
+            menuItem.setOnAction(event -> {
+                String ret = webPane.executeScript("getSelectionInDictionary && getSelectionInDictionary()");
+                ret = ret == null ? "" : ret;
+                String[] arr = ret.split("\\|", 3);
+                if (arr.length > 2) {
+                    FxHelper.copyText(arr[2] + "\n——《" + arr[1] + "》");
+                }
+            });
             return List.of(menuItem);
         });
     }
