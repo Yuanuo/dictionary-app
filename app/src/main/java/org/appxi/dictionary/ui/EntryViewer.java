@@ -20,13 +20,16 @@ import org.appxi.event.EventHandler;
 import org.appxi.javafx.app.BaseApp;
 import org.appxi.javafx.app.web.WebAction_Goto;
 import org.appxi.javafx.app.web.WebApp;
+import org.appxi.javafx.app.web.WebRenderer;
 import org.appxi.javafx.app.web.WebViewer;
 import org.appxi.javafx.control.TextInput;
+import org.appxi.javafx.helper.FxHelper;
 import org.appxi.javafx.visual.MaterialIcon;
 import org.appxi.javafx.web.WebPane;
 import org.appxi.javafx.web.WebSelection;
 import org.appxi.prefs.UserPrefs;
 import org.appxi.property.RawProperty;
+import org.appxi.util.DigestHelper;
 import org.appxi.util.FileHelper;
 import org.appxi.util.StringHelper;
 import org.appxi.util.ext.FiConsumerX3;
@@ -105,11 +108,11 @@ public class EntryViewer extends WebViewer {
         app.eventBus.addEventHandler(HanLang.CHANGED, _handleHanLangChanged);
         //
         WebViewer.addShortcutKeys(this);
-        EntryViewer.addShortcutKeys(this);
+        EntryViewer.addShortcutKeysX(this);
         WebViewer.addShortcutMenu(this);
-        EntryViewer.addShortcutMenu(this);
+        EntryViewer.addShortcutMenuX(this);
         EntryViewer.addShortcutMenu2(this);
-        EntryViewer.addSelectionEvent(this);
+        EntryViewer.addSelectionEventX(this);
         //
         if (app instanceof WebApp webApp) {
             this.webIncludesSupplier = webApp.webIncludesSupplier();
@@ -169,7 +172,7 @@ public class EntryViewer extends WebViewer {
 
         // 由于词条内容可能涉及特殊字符，此处使用本地文件以保证正常显示
         String tempInfo = String.valueOf(System.currentTimeMillis());
-        Path tempFile = UserPrefs.cacheDir().resolve(FileHelper.makeEncodedPath(tempInfo, ".html"));
+        Path tempFile = UserPrefs.cacheDir().resolve(DigestHelper.md5(tempInfo) + ".html");
         FileHelper.writeString(buff.toString(), tempFile);
         tempFile.toFile().deleteOnExit();
         return tempFile;
@@ -190,7 +193,7 @@ public class EntryViewer extends WebViewer {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static void addShortcutKeys(WebViewer webViewer) {
+    public static void addShortcutKeysX(WebRenderer webViewer) {
         final WebPane webPane = webViewer.webPane;
         final BaseApp app = webViewer.app;
         //
@@ -210,7 +213,7 @@ public class EntryViewer extends WebViewer {
         webPane.shortcutKeys.put(new KeyCodeCombination(KeyCode.D, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), (e, s) -> BC.accept(e, s, true));
     }
 
-    public static void addShortcutMenu(WebViewer webViewer) {
+    public static void addShortcutMenuX(WebRenderer webViewer) {
         final WebPane webPane = webViewer.webPane;
         final BaseApp app = webViewer.app;
         //
@@ -252,7 +255,7 @@ public class EntryViewer extends WebViewer {
         });
     }
 
-    public static void addSelectionEvent(WebViewer webViewer) {
+    public static void addSelectionEventX(WebRenderer webViewer) {
         final WebPane webPane = webViewer.webPane;
         final BaseApp app = webViewer.app;
         //
